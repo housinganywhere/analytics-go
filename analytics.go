@@ -116,6 +116,8 @@ type Client struct {
 	// configured only before any messages are enqueued.
 	Interval time.Duration
 	Size     int
+	// Delay is additional time between the moment queue is emptied and the real message transfer to segment api.
+	Delay    time.Duration
 	Logger   *log.Logger
 	Verbose  bool
 	Client   http.Client
@@ -287,6 +289,11 @@ func (c *Client) send(msgs []interface{}) error {
 		return fmt.Errorf("error marshalling msgs: %s", err)
 	}
 
+	if c.Delay > 0 {
+		c.logf("Delaying message send by %v\n", c.Delay)
+		timer := time.NewTimer(c.Delay)
+		<-timer.C
+	}
 	for i := 0; i < 10; i++ {
 		if err = c.upload(b); err == nil {
 			return nil
